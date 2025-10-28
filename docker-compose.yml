@@ -1,0 +1,89 @@
+# version: "3.9"  # optional
+
+services:
+  # ---------------------------
+  # Spark Master
+  # ---------------------------
+  spark-master:
+    image: apache/spark:3.5.6-scala2.12-java17-python3-ubuntu
+    container_name: spark-master
+    command: >
+      /opt/spark/bin/spark-class org.apache.spark.deploy.master.Master
+      --host spark-master
+      --webui-port 9090
+    ports:
+      - "9090:9090"   # Spark Master UI
+      - "7077:7077"   # Spark Cluster Port
+    environment:
+      - SPARK_MASTER_HOST=spark-master
+      - SPARK_CLASSPATH=/extra-jars/mysql-connector-j-9.4.0.jar
+    networks:
+      - spark-net
+    volumes:
+      - D:/PythonProject/data:/data
+      - D:/PythonProject/jars:/extra-jars
+      - D:/PythonProject/pyspark:/PySpark
+
+  # ---------------------------
+  # Spark Worker
+  # ---------------------------
+  spark-worker:
+    image: apache/spark:3.5.6-scala2.12-java17-python3-ubuntu
+    container_name: spark-worker
+    depends_on:
+      - spark-master
+    command: >
+      /opt/spark/bin/spark-class org.apache.spark.deploy.worker.Worker
+      spark://spark-master:7077
+      --webui-port 9091
+    ports:
+      - "9091:9091"   # Spark Worker UI
+    environment:
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2g
+      - SPARK_MASTER=spark://spark-master:7077
+      - SPARK_CLASSPATH=/extra-jars/mysql-connector-j-9.4.0.jar
+    networks:
+      - spark-net
+    volumes:
+      - D:/PythonProject/data:/data
+      - D:/PythonProject/jars:/extra-jars
+      - D:/PythonProject/pyspark:/PySpark
+
+  # ---------------------------
+  # MySQL Database
+  # ---------------------------
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: starwars_db
+      MYSQL_USER: sparkuser
+      MYSQL_PASSWORD: sparkpass
+    ports:
+      - "3307:3306"
+    volumes:
+      - D:/PythonProject/mysql-data:/var/lib/mysql
+    networks:
+      - spark-net
+
+  # ---------------------------
+  # Optional: Adminer (MySQL UI)
+  # ---------------------------
+  adminer:
+    image: adminer
+    container_name: adminer
+    restart: always
+    ports:
+      - "8081:8080"  # Web UI at http://localhost:8081
+    networks:
+      - spark-net
+
+# ---------------------------
+# Network
+# ---------------------------
+networks:
+  spark-net:
+    driver: bridge
