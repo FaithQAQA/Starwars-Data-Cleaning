@@ -156,5 +156,5 @@ properties = {
 df.write \
     .jdbc(url=jdbc_url, table=table_name, mode="overwrite", properties=properties)
 
-print(f"✅ Data written successfully to MySQL table: {table_name}")
+print(f" Data written successfully to MySQL table: {table_name}")
 
